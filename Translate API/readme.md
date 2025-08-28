@@ -1,119 +1,67 @@
-🌐 Real-Time Translator API (AWS)
+🌍 API Translator Service
 
-A serverless translation API built with AWS Lambda, API Gateway, Amazon Translate, and Amazon Comprehend.
-This API translates text into English (or another target language) and performs sentiment analysis on the result.
+A serverless translation API that uses Amazon Translate to translate text between languages, with logs stored in DynamoDB. The API is exposed via Amazon API Gateway and powered by AWS Lambda.
 
 🚀 Features
 
-Translate any text into your chosen target language using Amazon Translate
+Translate text between supported languages using Amazon Translate
 
-Detect sentiment (Positive, Negative, Neutral, Mixed) with Amazon Comprehend
+Store request/response logs in DynamoDB
 
-Exposed via REST API Gateway endpoint
+REST API endpoints via API Gateway
 
-Serverless (no servers to manage)
+Pay-per-use, fully serverless, auto-scaling⚙ Architecture [Client / cURL / App]
+        ↓
+  [API Gateway REST API]
+        ↓
+     [Lambda Function]
+        ↓
+  ┌───────────────┐
+  │ Amazon Translate │  (translation service)
+  └───────────────┘
+        ↓
+  [DynamoDB Table]  (store request + result)
+🧰 Tech Stack
 
-Optional logging to Amazon S3
+Amazon API Gateway – Expose REST API
 
-🏗️ Architecture
+AWS Lambda (Python 3.12) – Core logic
 
-API Gateway → Handles HTTP requests
+Amazon Translate – Language translation
 
-Lambda → Core logic for translation + sentiment
+Amazon DynamoDB – Store logs
 
-Amazon Translate → Language translation
+CloudWatch – Monitoring and logs
 
-Amazon Comprehend → Sentiment analysis
+🛠 Setup
+1. Create DynamoDB Table
 
-S3 (Optional) → Store logs / history
+Table name: Translations
 
-📦 Setup Instructions
-1. IAM Setup
+Partition key: request_id (String)
 
-Create a Lambda execution role with permissions:
+2. Create Lambda Function
 
-AmazonTranslateFullAccess
+Runtime: Python 3.12
 
-ComprehendFullAccess
+Name: TranslatorLambda
 
-AmazonS3FullAccess (optional)
+IAM Role with permissions:{
+  "Effect": "Allow",
+  "Action": [
+    "translate:TranslateText",
+    "dynamodb:PutItem",
+    "logs:*"
+  ],
+  "Resource": "*"
+}
+3. Add Lambda Code4. Deploy API Gateway
 
-CloudWatchLogsFullAccess
+Create a REST API in API Gateway.
 
-2. Lambda Function
+Create a POST /translate endpoint.
 
-Create a Lambda function and paste the following code:
-import json
-import boto3
-translate = boto3.client('translate')
+Integrate with Lambda.
 
-def lambda_handler(event, context):
+Enable CORS for frontend access.
 
-    try:
-
-        # Print for debugging
-        print("Received event:", event)
-
-        # Safely parse input
-        body = json.loads(event.get('body', '{}'))
-
-        text = body.get('text', '')
-        target_lang = body.get('target', 'es')  # default to Spanish
-
-        if not text:
-            return {
-                'statusCode': 400,
-                'body': json.dumps({'error': 'Missing "text" in request'})
-            }
-
-        result = translate.translate_text(
-            Text=text,
-            SourceLanguageCode='auto',
-            TargetLanguageCode=target_lang
-        )
-
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'translatedText': result['TranslatedText']})
-        }
-
-    except Exception as e:
-        print("Error:", str(e))
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': str(e)})
-        }
-3. API Gateway
-
-Create a POST endpoint (e.g., /translate)
-
-Integrate with the Lambda function
-
-Enable CORS if needed
-
-Deploy the API
-Request
-curl -X POST "https://q0rs1d8j06.execute-api.us-east-1.amazonaws.com/karimhabytranslate" -H "Content-Type: application/json" -d "{\"text\": \"Guten Tag Welt\", \"target\": \"en\"}"
-Response
-{"translatedText": "Good day world"}
-🛠️ Technologies
-
-AWS Lambda
-
-Amazon API Gateway
-
-Amazon Translate
-
-Amazon Comprehend
-
-Amazon S3 (optional)
-
-📌 Future Improvements
-
-Add support for batch translations
-
-Store translation history in DynamoDB
-
-Add authentication via IAM / Cognito
-
-✨ Built with AWS Serverless Services for real-time translation and sentiment analysis.
